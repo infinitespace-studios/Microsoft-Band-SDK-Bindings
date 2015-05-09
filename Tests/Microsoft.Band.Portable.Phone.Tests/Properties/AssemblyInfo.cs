@@ -1,20 +1,18 @@
-﻿using System.Resources;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Microsoft.Band.Portable")]
+[assembly: AssemblyTitle("Microsoft.Band.Portable.Phone.Tests")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Microsoft.Band.Portable")]
-[assembly: AssemblyCopyright("Copyright © Xamarin and Microsoft")]
+[assembly: AssemblyProduct("Microsoft.Band.Portable.Phone.Tests")]
+[assembly: AssemblyCopyright("Copyright ©  2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
-[assembly: NeutralResourcesLanguage("en")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -28,10 +26,4 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-
-// let everyone know this is not meant to be used
-// [assembly: ReferenceAssembly]
-
-// for testing purposes
-[assembly: InternalsVisibleTo("Microsoft.Band.Portable.Tests")]
-[assembly: InternalsVisibleTo("Microsoft.Band.Portable.Phone.Tests")]
+[assembly: ComVisible(false)]
