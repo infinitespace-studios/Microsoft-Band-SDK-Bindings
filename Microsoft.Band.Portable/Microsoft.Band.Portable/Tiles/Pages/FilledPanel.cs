@@ -1,3 +1,5 @@
+using System.Xml.Linq;
+
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
 using NativeElement = Microsoft.Band.Tiles.Pages.PageElement;
 using NativeFilledPanel = Microsoft.Band.Tiles.Pages.FilledPanel;
@@ -9,14 +11,38 @@ namespace Microsoft.Band.Portable.Tiles.Pages
 
     public class FilledPanel : Panel
     {
+        private static readonly BandColor DefaultBackgroundColor = BandColor.Empty;
+        private const ElementColorSource DefaultBackgroundColorSource = ElementColorSource.Custom;
+
         public FilledPanel()
         {
-            BackgroundColor = BandColor.Empty;
-            BackgroundColorSource = ElementColorSource.Custom;
+            BackgroundColor = DefaultBackgroundColor;
+            BackgroundColorSource = DefaultBackgroundColorSource;
         }
 
         public BandColor BackgroundColor { get; set; }
         public ElementColorSource BackgroundColorSource { get; set; }
+        
+        internal FilledPanel(XElement element)
+            : base(element)
+        {
+            BackgroundColor = element.ReadAttribute("BackgroundColor", DefaultBackgroundColor);
+            BackgroundColorSource = element.ReadEnumAttribute("BackgroundColorSource", DefaultBackgroundColorSource);
+        }
+
+        internal override XElement AsXml(XElement element)
+        {
+            if (element == null)
+            {
+                element = new XElement("FilledPanel");
+            }
+
+            element.AddAttribute("BackgroundColor", BackgroundColor, DefaultBackgroundColor);
+            element.AddBasicAttribute("BackgroundColorSource", BackgroundColorSource, DefaultBackgroundColorSource);
+
+            base.AsXml(element);
+            return element;
+        }
 
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
         internal FilledPanel(NativeFilledPanel native)

@@ -19,7 +19,7 @@ namespace Microsoft.Band.Portable.Personalization
 {
     public sealed class BandImage
     {
-        private BandImage()
+        internal BandImage()
         {
 
         }

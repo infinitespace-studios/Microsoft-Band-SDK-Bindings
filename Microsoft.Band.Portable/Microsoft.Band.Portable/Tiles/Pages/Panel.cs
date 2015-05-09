@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml;
+using System.Xml.Linq;
 
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
 using NativeElement = Microsoft.Band.Tiles.Pages.PageElement;
@@ -16,6 +19,28 @@ namespace Microsoft.Band.Portable.Tiles.Pages
         }
 
         public List<Element> Elements { get; private set; }
+
+        internal Panel(XElement element)
+            : base(element)
+        {
+            Elements = element.Elements().Select(e => Element.FromXml(e)).ToList();
+        }
+
+        internal override XElement AsXml(XElement element)
+        {
+            if (element == null)
+            {
+                throw new InvalidOperationException("Cannot serialize an abstract type.");
+            }
+
+            if (Elements.Count > 0)
+            {
+                element.Add(Elements.Select(e => e.AsXml()).ToArray());
+            }
+
+            base.AsXml(element);
+            return element;
+        }
 
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
         internal Panel(NativePanel native)

@@ -1,3 +1,6 @@
+using System.Xml;
+using System.Xml.Linq;
+
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
 using NativeElement = Microsoft.Band.Tiles.Pages.PageElement;
 using NativeFlowPanel = Microsoft.Band.Tiles.Pages.FlowPanel;
@@ -7,12 +10,33 @@ namespace Microsoft.Band.Portable.Tiles.Pages
 {
     public class FlowPanel : Panel
     {
+        private const Orientation DefaultOrientation = Orientation.Vertical;
+
         public FlowPanel()
         {
-            Orientation = Orientation.Vertical;
+            Orientation = DefaultOrientation;
         }
 
         public Orientation Orientation { get; set; }
+
+        internal FlowPanel(XElement element)
+            : base(element)
+        {
+            Orientation = element.ReadEnumAttribute("Orientation", DefaultOrientation);
+        }
+
+        internal override XElement AsXml(XElement element)
+        {
+            if (element == null)
+            {
+                element = new XElement("FlowPanel");
+            }
+
+            element.AddBasicAttribute("Orientation", Orientation, DefaultOrientation);
+
+            base.AsXml(element);
+            return element;
+        }
 
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
         internal FlowPanel(NativeFlowPanel native)

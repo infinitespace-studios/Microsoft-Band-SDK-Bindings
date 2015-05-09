@@ -1,3 +1,6 @@
+using System.Linq;
+using System.Xml;
+
 namespace Microsoft.Band.Portable.Tiles.Pages
 {
     public struct Rectangle
@@ -60,6 +63,25 @@ namespace Microsoft.Band.Portable.Tiles.Pages
         public override string ToString()
         {
             return string.Format("[X={0}, Y={1}, Width={2}, Height={3}]", X, Y, Width, Height);
+        }
+
+        internal static Rectangle FromXmlString(string xmlString)
+        {
+            var parts = xmlString.Split(',').Select(p => short.Parse(p.Trim())).ToArray();
+
+            if (parts.Length == 4)
+            {
+                return new Rectangle(parts[0], parts[1], parts[2], parts[3]);
+            }
+
+            throw new XmlException("Rectangle was incorrectly formed. It should consist of 4 comma separated Int16s.");
+        }
+
+        internal string ToXmlString()
+        {
+            return string.Format(
+                "{0}, {1}, {2}, {3}",
+                XmlConvert.ToString(X), XmlConvert.ToString(Y), XmlConvert.ToString(Width), XmlConvert.ToString(Height));
         }
 
         public static bool operator ==(Rectangle left, Rectangle right)

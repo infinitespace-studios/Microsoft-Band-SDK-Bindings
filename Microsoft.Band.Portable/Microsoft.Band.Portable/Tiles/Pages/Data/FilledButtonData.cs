@@ -1,3 +1,5 @@
+using System.Xml.Linq;
+
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
 using NativeFilledButtonData = Microsoft.Band.Tiles.Pages.FilledButtonData;
 using NativeElementData = Microsoft.Band.Tiles.Pages.PageElementData;
@@ -9,11 +11,33 @@ namespace Microsoft.Band.Portable.Tiles.Pages.Data
 
     public class FilledButtonData : ButtonBaseData
     {
+        private static readonly BandColor DefaultPressedColor = BandColor.Empty;
+
         public FilledButtonData()
         {
+            PressedColor = DefaultPressedColor;
         }
 
         public BandColor PressedColor { get; set; }
+
+        internal FilledButtonData(XElement element)
+            : base(element)
+        {
+            PressedColor = element.ReadAttribute("PressedColor", DefaultPressedColor);
+        }
+
+        internal override XElement AsXml(XElement element)
+        {
+            if (element == null)
+            {
+                element = new XElement("FilledButtonData");
+            }
+
+            element.AddAttribute("PressedColor", PressedColor, value => value.Hex, DefaultPressedColor);
+
+            base.AsXml(element);
+            return element;
+        }
 
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
         internal FilledButtonData(NativeFilledButtonData native)

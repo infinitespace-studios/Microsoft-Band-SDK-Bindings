@@ -1,3 +1,6 @@
+using System;
+using System.Xml.Linq;
+
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
 using NativeElement = Microsoft.Band.Tiles.Pages.PageElement;
 using NativeBarcode = Microsoft.Band.Tiles.Pages.Barcode;
@@ -7,12 +10,33 @@ namespace Microsoft.Band.Portable.Tiles.Pages
 {
     public class Barcode : Element
     {
+        private const BarcodeType DefaultBarcodeType = BarcodeType.Code39;
+
         public Barcode()
         {
-            BarcodeType = BarcodeType.Code39;
+            BarcodeType = DefaultBarcodeType;
         }
 
         public BarcodeType BarcodeType { get; set; }
+
+        internal Barcode(XElement element)
+            : base(element)
+        {
+            BarcodeType = element.ReadEnumAttribute("BarcodeType", DefaultBarcodeType);
+        }
+
+        internal override XElement AsXml(XElement element)
+        {
+            if (element == null)
+            {
+                element = new XElement("Barcode");
+            }
+
+            element.AddBasicAttribute("BarcodeType", BarcodeType, DefaultBarcodeType);
+
+            base.AsXml(element);
+            return element;
+        }
 
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
         internal Barcode(NativeBarcode native)

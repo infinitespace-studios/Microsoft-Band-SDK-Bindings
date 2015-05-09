@@ -1,3 +1,5 @@
+using System.Xml.Linq;
+
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
 using NativeElement = Microsoft.Band.Tiles.Pages.PageElement;
 #endif
@@ -7,6 +9,11 @@ namespace Microsoft.Band.Portable.Tiles.Pages
     public abstract class ButtonBase : Element
     {
         public ButtonBase()
+        {
+        }
+
+        internal ButtonBase(XElement element)
+            : base(element)
         {
         }
 

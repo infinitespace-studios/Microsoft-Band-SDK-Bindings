@@ -1,3 +1,6 @@
+using System.Xml;
+using System.Xml.Linq;
+
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
 using NativeElement = Microsoft.Band.Tiles.Pages.PageElement;
 using NativeScrollFlowPanel = Microsoft.Band.Tiles.Pages.ScrollFlowPanel;
@@ -9,14 +12,38 @@ namespace Microsoft.Band.Portable.Tiles.Pages
 
     public class ScrollFlowPanel : FlowPanel
     {
+        private const ElementColorSource DefaultScrollbarColorSource = ElementColorSource.Custom;
+        private static readonly BandColor DefaultScrollbarColor = BandColor.Empty;
+
         public ScrollFlowPanel()
         {
-            ScrollbarColor = BandColor.Empty;
-            ScrollbarColorSource = ElementColorSource.Custom;
+            ScrollbarColor = DefaultScrollbarColor;
+            ScrollbarColorSource = DefaultScrollbarColorSource;
         }
 
         public BandColor ScrollbarColor { get; set; }
         public ElementColorSource ScrollbarColorSource { get; set; }
+
+        internal ScrollFlowPanel(XElement element)
+            : base(element)
+        {
+            ScrollbarColor = element.ReadAttribute("ScrollbarColor", DefaultScrollbarColor);
+            ScrollbarColorSource = element.ReadEnumAttribute("ScrollbarColorSource", DefaultScrollbarColorSource);
+        }
+
+        internal override XElement AsXml(XElement element)
+        {
+            if (element == null)
+            {
+                element = new XElement("ScrollFlowPanel");
+            }
+
+            element.AddAttribute("ScrollbarColor", ScrollbarColor, DefaultScrollbarColor);
+            element.AddBasicAttribute("ScrollbarColorSource", ScrollbarColorSource, DefaultScrollbarColorSource);
+
+            base.AsXml(element);
+            return element;
+        }
 
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
         internal ScrollFlowPanel(NativeScrollFlowPanel native)

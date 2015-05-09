@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Xml.Linq;
 
 using Microsoft.Band.Portable.Tiles.Pages;
 using Microsoft.Band.Portable.Tiles.Pages.Data;
@@ -19,32 +21,184 @@ using NativeWrappedTextBlockFont = Microsoft.Band.Tiles.Pages.WrappedTextBlockFo
 using NativeElementData = Microsoft.Band.Tiles.Pages.PageElementData;
 using NativeElement = Microsoft.Band.Tiles.Pages.PageElement;
 using NativePanel = Microsoft.Band.Tiles.Pages.PagePanel;
-using ConstructorCollection = System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Reflection.ConstructorInfo>;
 #endif
 
 namespace Microsoft.Band.Portable
 {
+    using BandColor = Microsoft.Band.Portable.Personalization.BandColor;
+
     internal static class PageExtensions
     {
-#if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
-        private readonly static ConstructorCollection elementConstructors;
-        private readonly static ConstructorCollection dataConstructors;
-        private readonly static TypeInfo[] elementTypes;
-        private readonly static TypeInfo[] elementDataTypes;
+        internal readonly static Dictionary<string, ConstructorInfo> elementXmlConstructors;
+        internal readonly static Dictionary<string, ConstructorInfo> dataXmlConstructors;
+        internal readonly static Dictionary<Type, ConstructorInfo> elementNativeConstructors;
+        internal readonly static Dictionary<Type, ConstructorInfo> dataNativeConstructors;
 
         static PageExtensions()
         {
-            elementConstructors = new ConstructorCollection();
-            dataConstructors = new ConstructorCollection();
+            elementXmlConstructors = new Dictionary<string, ConstructorInfo>();
+            dataXmlConstructors = new Dictionary<string, ConstructorInfo>();
+            elementNativeConstructors = new Dictionary<Type, ConstructorInfo>();
+            dataNativeConstructors = new Dictionary<Type, ConstructorInfo>();
 
-            // get all the Element types
+            var elementXmlType = typeof(XElement);
+#if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
+            var elementNativeType = typeof(NativeElement).GetTypeInfo();
+            var dataNativeType = typeof(NativeElementData).GetTypeInfo();
+#endif
+
+            // get types from assembly
             var assembly = typeof(PageExtensions).GetTypeInfo().Assembly;
             var elementType = typeof(Element).GetTypeInfo();
-            elementTypes = assembly.DefinedTypes.Where(t => !t.IsAbstract && elementType.IsAssignableFrom(t)).ToArray();
+            var elementTypes = assembly.DefinedTypes.Where(t => !t.IsAbstract && elementType.IsAssignableFrom(t)).ToArray();
             var elementDataType = typeof(ElementData).GetTypeInfo();
-            elementDataTypes = assembly.DefinedTypes.Where(t => !t.IsAbstract && elementDataType.IsAssignableFrom(t)).ToArray();
+            var dataTypes = assembly.DefinedTypes.Where(t => !t.IsAbstract && elementDataType.IsAssignableFrom(t)).ToArray();
+
+            foreach (var type in elementTypes)
+            {
+                // get the type by XML constructor
+                var xmlConstructor = type.GetConstructor(elementXmlType);
+                if (xmlConstructor != null)
+                {
+                    elementXmlConstructors[type.Name] = xmlConstructor;
+                }
+
+                // get the type by native constructor
+#if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
+                Type parameterType;
+                var nativeConstructor = type.GetConstructor(elementNativeType, out parameterType);
+                if (nativeConstructor != null)
+                {
+                    elementNativeConstructors[parameterType] = nativeConstructor;
+                }
+#endif
+            }
+
+            foreach (var type in dataTypes)
+            {
+                // get the type by XML constructor
+                var xmlConstructor = type.GetConstructor(elementXmlType);
+                if (xmlConstructor != null)
+                {
+                    dataXmlConstructors[type.Name] = xmlConstructor;
+                }
+
+                // get the type by native constructor
+#if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
+                Type parameterType;
+                var nativeConstructor = type.GetConstructor(dataNativeType, out parameterType);
+                if (nativeConstructor != null)
+                {
+                    dataNativeConstructors[parameterType] = nativeConstructor;
+                }
+#endif
+            }
         }
 
+        internal static string ReadAttribute(this XElement element, string localName, string defaultValue)
+        {
+            return element.ReadAttribute(localName, v => v, defaultValue);
+        }
+        internal static BandColor ReadAttribute(this XElement element, string localName, BandColor defaultValue)
+        {
+            return element.ReadAttribute(localName, v => BandColor.FromHex(v), defaultValue);
+        }
+        internal static T ReadEnumAttribute<T>(this XElement element, string localName, T defaultValue)
+            where T : struct
+        {
+            return element.ReadAttribute(localName, v => (T)Enum.Parse(typeof(T), v, true), defaultValue);
+        }
+        internal static T ReadAttribute<T>(this XElement element, string localName, Func<string, T> getXmlValue, T defaultValue)
+        {
+            var attribute = element.Attribute(localName);
+            if (attribute != null)
+            {
+                return getXmlValue(attribute.Value);
+            }
+            return defaultValue;
+        }
+
+        internal static void AddAttribute(this XElement element, string localName, string value, string defaultValue)
+        {
+            element.AddAttribute(localName, value, v => v, defaultValue);
+        }
+        internal static void AddAttribute(this XElement element, string localName, BandColor value, BandColor defaultValue)
+        {
+            element.AddAttribute(localName, value, v => v.Hex, defaultValue);
+        }
+        internal static void AddBasicAttribute<T>(this XElement element, string localName, T value, T defaultValue)
+        {
+            element.AddAttribute(localName, value, v => v.ToString(), defaultValue);
+        }
+        internal static void AddAttribute<T>(this XElement element, string localName, T value, Func<T, string> getXmlValue, T defaultValue)
+        {
+            if (!value.Equals(defaultValue))
+            {
+                element.Add(new XAttribute(localName, getXmlValue(value)));
+            }
+        }
+
+        internal static Element ElementFromXml(XElement element)
+        {
+            return FromXml<Element>(element, elementXmlConstructors);
+        }
+        internal static ElementData ElementDataFromXml(XElement element)
+        {
+            return FromXml<ElementData>(element, dataXmlConstructors);
+        }
+
+        private static TPortable FromXml<TPortable>(XElement element, Dictionary<string, ConstructorInfo> constructors)
+            where TPortable : class
+        {
+            var elementType = element.Name.LocalName;
+            if (!constructors.ContainsKey(elementType))
+            {
+                throw new ArgumentException(string.Format("No matching portable type was found for {0}", elementType), "element");
+            }
+            return (TPortable)constructors[elementType].Invoke(new[] { element });
+        }
+
+        private static TPortable FromNative<TPortable, TNative>(TNative native, Dictionary<Type, ConstructorInfo> constructors)
+            where TPortable : class
+            where TNative : class
+        {
+            var nativeType = native.GetType();
+            if (!constructors.ContainsKey(nativeType))
+            {
+                throw new ArgumentException(string.Format("No matching portable type was found for {0}", nativeType.FullName), "native");
+            }
+            return (TPortable)constructors[nativeType].Invoke(new[] { native });
+        }
+
+        private static ConstructorInfo GetConstructor(this TypeInfo type, Type parameterType)
+        {
+            foreach (var constructor in type.DeclaredConstructors)
+            {
+                var parameters = constructor.GetParameters();
+                if (parameters.Length == 1 && parameters[0].ParameterType == parameterType)
+                {
+                    return constructor;
+                }
+            }
+            return null;
+        }
+
+        private static ConstructorInfo GetConstructor(this TypeInfo type, TypeInfo parameterBaseType, out Type parameterType)
+        {
+            foreach (var constructor in type.DeclaredConstructors)
+            {
+                var parameters = constructor.GetParameters();
+                if (parameters.Length == 1 && parameterBaseType.IsAssignableFrom(parameters[0].ParameterType.GetTypeInfo()))
+                {
+                    parameterType = parameters[0].ParameterType;
+                    return constructor;
+                }
+            }
+            parameterType = null;
+            return null;
+        }
+
+#if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
         internal static NativeBarcodeType ToNative(this BarcodeType barcodeType)
         {
             // can't use switch on Android as this is not an enum
@@ -293,47 +447,17 @@ namespace Microsoft.Band.Portable
             throw new ArgumentOutOfRangeException("verticalAlignment", "Invalid VerticalAlignment specified.");
         }
 
-        private static TPortable FromNative<TPortable, TNative>(this TNative native, ConstructorCollection constructors, TypeInfo[] types)
-            where TPortable : class
-            where TNative : class
+        internal static ElementData FromNative(this NativeElementData native)
         {
-            var nativeType = native.GetType();
-            var constructor = constructors.GetOrAdd(nativeType, t => GetConstructor(types, t));
-            if (constructor == null)
-            {
-                throw new ArgumentException(string.Format("No matching portable type was found for {0}", nativeType.FullName), "native");
-            }
-            return (TPortable)constructor.Invoke(new[] { native });
+            return FromNative<ElementData, NativeElementData>(native, dataNativeConstructors);
         }
-
-        private static ConstructorInfo GetConstructor(TypeInfo[] types, Type nativeParameterType)
+        internal static Element FromNative(this NativeElement native)
         {
-            foreach (var elem in types)
-            {
-                foreach (var constructor in elem.DeclaredConstructors)
-                {
-                    var parameters = constructor.GetParameters();
-                    if (parameters.Length == 1 && parameters[0].ParameterType == nativeParameterType)
-                    {
-                        return constructor;
-                    }
-                }
-            }
-
-            return null;
+            return FromNative<Element, NativeElement>(native, elementNativeConstructors);
         }
-
-        public static ElementData FromNative(this NativeElementData native)
+        internal static Panel FromNative(this NativePanel native)
         {
-            return FromNative<ElementData, NativeElementData>(native, dataConstructors, elementDataTypes);
-        }
-        public static Element FromNative(this NativeElement native)
-        {
-            return FromNative<Element, NativeElement>(native, elementConstructors, elementTypes);
-        }
-        public static Panel FromNative(this NativePanel native)
-        {
-            return FromNative<Panel, NativePanel>(native, elementConstructors, elementTypes);
+            return FromNative<Panel, NativePanel>(native, elementNativeConstructors);
         }
 #endif
     }

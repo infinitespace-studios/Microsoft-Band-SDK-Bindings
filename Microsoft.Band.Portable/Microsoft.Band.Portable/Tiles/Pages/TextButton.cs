@@ -1,3 +1,5 @@
+using System.Xml.Linq;
+
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
 using NativeElement = Microsoft.Band.Tiles.Pages.PageElement;
 using NativeTextButton = Microsoft.Band.Tiles.Pages.TextButton;
@@ -9,12 +11,33 @@ namespace Microsoft.Band.Portable.Tiles.Pages
 
     public class TextButton : ButtonBase
     {
+        private static readonly BandColor DefaultPressedColor = BandColor.Empty;
+
         public TextButton()
         {
-            PressedColor = BandColor.Empty;
+            PressedColor = DefaultPressedColor;
         }
 
         public BandColor PressedColor { get; set; }
+
+        internal TextButton(XElement element)
+            : base(element)
+        {
+            PressedColor = element.ReadAttribute("PressedColor", DefaultPressedColor);
+        }
+
+        internal override XElement AsXml(XElement element)
+        {
+            if (element == null)
+            {
+                element = new XElement("TextButton");
+            }
+
+            element.AddAttribute("PressedColor", PressedColor, DefaultPressedColor);
+
+            base.AsXml(element);
+            return element;
+        }
 
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
         internal TextButton(NativeTextButton native)

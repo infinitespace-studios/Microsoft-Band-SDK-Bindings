@@ -1,3 +1,6 @@
+using System.Xml;
+using System.Xml.Linq;
+
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
 using NativeElement = Microsoft.Band.Tiles.Pages.PageElement;
 using NativeTextBlock = Microsoft.Band.Tiles.Pages.TextBlock;
@@ -9,14 +12,17 @@ namespace Microsoft.Band.Portable.Tiles.Pages
 
     public class TextBlock : TextBlockBase
     {
+        private const bool DefaultAutoWidth = true;
+        private const short DefaultBaseline = 0;
+        private const TextBlockBaselineAlignment DefaultBaselineAlignment = TextBlockBaselineAlignment.Automatic;
+        private const TextBlockFont DefaultFont = TextBlockFont.Small;
+
         public TextBlock()
         {
-            AutoWidth = true;
-            Baseline = 0;
-            BaselineAlignment = TextBlockBaselineAlignment.Automatic;
-            TextColor = BandColor.Empty;
-            TextColorSource = ElementColorSource.Custom;
-            Font = TextBlockFont.Small;
+            AutoWidth = DefaultAutoWidth;
+            Baseline = DefaultBaseline;
+            BaselineAlignment = DefaultBaselineAlignment;
+            Font = DefaultFont;
         }
 
         public bool AutoWidth { get; set; }
@@ -25,6 +31,31 @@ namespace Microsoft.Band.Portable.Tiles.Pages
         public override BandColor TextColor { get; set; }
         public override ElementColorSource TextColorSource { get; set; }
         public TextBlockFont Font { get; set; }
+
+        internal TextBlock(XElement element)
+            : base(element)
+        {
+            AutoWidth = element.ReadAttribute("AutoWidth", value => XmlConvert.ToBoolean(value), DefaultAutoWidth);
+            Baseline = element.ReadAttribute("Baseline", value => XmlConvert.ToInt16(value), DefaultBaseline);
+            BaselineAlignment = element.ReadEnumAttribute("BaselineAlignment", DefaultBaselineAlignment);
+            Font = element.ReadEnumAttribute("Font", DefaultFont);
+        }
+
+        internal override XElement AsXml(XElement element)
+        {
+            if (element == null)
+            {
+                element = new XElement("TextBlock");
+            }
+
+            element.AddAttribute("AutoWidth", AutoWidth, value => XmlConvert.ToString(value), DefaultAutoWidth);
+            element.AddAttribute("Baseline", Baseline, value => XmlConvert.ToString(value), DefaultBaseline);
+            element.AddBasicAttribute("BaselineAlignment", BaselineAlignment, DefaultBaselineAlignment);
+            element.AddBasicAttribute("Font", Font, DefaultFont);
+
+            base.AsXml(element);
+            return element;
+        }
 
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
         internal TextBlock(NativeTextBlock native)

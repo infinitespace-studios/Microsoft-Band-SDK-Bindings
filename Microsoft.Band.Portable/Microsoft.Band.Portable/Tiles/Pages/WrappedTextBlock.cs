@@ -1,3 +1,6 @@
+using System.Xml;
+using System.Xml.Linq;
+
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
 using NativeElement = Microsoft.Band.Tiles.Pages.PageElement;
 using NativeWrappedTextBlock = Microsoft.Band.Tiles.Pages.WrappedTextBlock;
@@ -9,18 +12,40 @@ namespace Microsoft.Band.Portable.Tiles.Pages
 
     public class WrappedTextBlock : TextBlockBase
     {
+        private const bool DefaultAutoHeight = true;
+        private const WrappedTextBlockFont DefaultFont = WrappedTextBlockFont.Small;
+
         public WrappedTextBlock()
         {
-            AutoHeight = true;
-            TextColor = BandColor.Empty;
-            TextColorSource = ElementColorSource.Custom;
-            Font = WrappedTextBlockFont.Small;
+            AutoHeight = DefaultAutoHeight;
+            Font = DefaultFont;
         }
 
         public bool AutoHeight { get; set; }
         public override BandColor TextColor { get; set; }
         public override ElementColorSource TextColorSource { get; set; }
         public WrappedTextBlockFont Font { get; set; }
+
+        internal WrappedTextBlock(XElement element)
+            : base(element)
+        {
+            AutoHeight = element.ReadAttribute("AutoHeight", value => XmlConvert.ToBoolean(value), DefaultAutoHeight);
+            Font = element.ReadEnumAttribute("Font", DefaultFont);
+        }
+
+        internal override XElement AsXml(XElement element)
+        {
+            if (element == null)
+            {
+                element = new XElement("WrappedTextBlock");
+            }
+
+            element.AddAttribute("AutoHeight", AutoHeight, value => XmlConvert.ToString(value), DefaultAutoHeight);
+            element.AddBasicAttribute("Font", Font, DefaultFont);
+
+            base.AsXml(element);
+            return element;
+        }
 
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
         internal WrappedTextBlock(NativeWrappedTextBlock native)

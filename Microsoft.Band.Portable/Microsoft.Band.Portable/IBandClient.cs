@@ -35,6 +35,10 @@ namespace Microsoft.Band.Portable
         private readonly Lazy<BandNotificationManager> notifications;
         private readonly Lazy<BandPersonalizationManager> personalization;
 
+        internal BandClient()
+        {
+        }
+
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
         internal NativeBandClient Native;
 

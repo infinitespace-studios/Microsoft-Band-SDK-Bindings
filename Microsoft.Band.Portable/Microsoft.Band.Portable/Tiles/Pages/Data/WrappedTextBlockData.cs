@@ -1,3 +1,5 @@
+using System.Xml.Linq;
+
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
 using NativeWrappedTextBlockData = Microsoft.Band.Tiles.Pages.WrappedTextBlockData;
 using NativeElementData = Microsoft.Band.Tiles.Pages.PageElementData;
@@ -12,6 +14,22 @@ namespace Microsoft.Band.Portable.Tiles.Pages.Data
         }
 
         public override string Text { get; set; }
+
+        internal WrappedTextBlockData(XElement element)
+            : base(element)
+        {
+        }
+
+        internal override XElement AsXml(XElement element)
+        {
+            if (element == null)
+            {
+                element = new XElement("WrappedTextBlockData");
+            }
+
+            base.AsXml(element);
+            return element;
+        }
 
 #if __ANDROID__ || __IOS__ || WINDOWS_PHONE_APP
         internal WrappedTextBlockData(NativeWrappedTextBlockData native)
